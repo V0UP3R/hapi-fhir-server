@@ -16,6 +16,29 @@ Passo 1: Preparação do Ambiente
 
 1.1 Crie um arquivo docker-compose.yml com o seguinte conteúdo:
 
+```yaml
+version: '3'
+services:
+  hapi-fhir:
+    image: hapiproject/hapi:latest
+    ports:
+      - "8080:8080"
+    networks:
+      - fhir-network
+    volumes:
+      - hapi-fhir-data:/var/lib/hapi/fhir/jpa
+    environment:
+      - HAPI_FHIR_SERVER_NAME=MyFHIRServer
+      - HAPI_FHIR_SERVER_URL=http://localhost:8080/fhir
+    restart: always
+
+networks:
+  fhir-network:
+
+volumes:
+  hapi-fhir-data:
+```
+
 1.2 Salve o arquivo e feche o editor.
 
 Passo 2: Instalação e Inicialização do Servidor FHIR
