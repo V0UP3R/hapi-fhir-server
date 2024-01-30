@@ -1,0 +1,20 @@
+version: '3'
+services:
+  hapi-fhir:
+    image: hapiproject/hapi:latest
+    ports:
+      - "8080:8080"
+    networks:
+      - fhir-network
+    volumes:
+      - hapi-fhir-data:/var/lib/hapi/fhir/jpa
+    environment:
+      - HAPI_FHIR_SERVER_NAME=MyFHIRServer
+      - HAPI_FHIR_SERVER_URL=http://localhost:8080/fhir
+    restart: always
+
+networks:
+  fhir-network:
+
+volumes:
+  hapi-fhir-data:
