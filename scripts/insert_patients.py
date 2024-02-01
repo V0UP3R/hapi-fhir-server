@@ -14,7 +14,7 @@ def carregar_pacientes_csv(nome_arquivo_csv, url_servidor_fhir):
         response_paciente = requests.post(url_paciente, headers={"Content-Type": "application/fhir+json"}, json=paciente)
         
         if response_paciente.status_code == 201:
-            print(f"Paciente {paciente['name'][0]['text']} criado com sucesso!")
+            print(f"Paciente {paciente['name'][0]['given'][0]} {paciente['name'][0]['family']} criado com sucesso!")
             
             observacao = str(linha['Observação']) if pd.notna(linha['Observação']) else ''
 
@@ -27,9 +27,9 @@ def carregar_pacientes_csv(nome_arquivo_csv, url_servidor_fhir):
                 response_observacao = requests.post(url_observacao, headers={"Content-Type": "application/fhir+json"}, json=observation)
                 
                 if response_observacao.status_code == 201:
-                    print(f"Observação para o paciente {paciente['name'][0]['text']} criada com sucesso!")
+                    print(f"Observação para o paciente {paciente['name'][0]['given'][0]} {paciente['name'][0]['family']} criada com sucesso!")
                 else:
-                    print(f"Erro ao criar observação para o paciente {paciente['name'][0]['text']}. Código de status: {response_observacao.status_code}")
+                    print(f"Erro ao criar observação para o paciente {paciente['name'][0]['given'][0]} {paciente['name'][0]['family']}. Código de status: {response_observacao.status_code}")
                     print(response_observacao.text)
         else:
             print(f"Erro ao criar paciente. Código de status: {response_paciente.status_code}")
@@ -37,6 +37,7 @@ def carregar_pacientes_csv(nome_arquivo_csv, url_servidor_fhir):
 
 def criar_paciente_a_partir_da_linha(linha):
     nome = linha['Nome']
+    nome = dividir_nome_sobrenome(nome)
     cpf = linha['CPF']
     genero = linha['Gênero']
     genero = "male" if genero.lower() == "masculino" else "female" if genero.lower() == "feminino" else "Gênero não reconhecido"
@@ -44,11 +45,17 @@ def criar_paciente_a_partir_da_linha(linha):
     telefone = linha['Telefone']
     pais_nascimento = linha['País de Nascimento']
     data_nascimento = datetime.strptime(data_nascimento_str, '%d/%m/%Y').strftime('%Y-%m-%d')
-    
+
     paciente = {
         "resourceType": "Patient",
         "active": True,
-        "name": [{"use": "official", "text": nome}],
+        "name": [
+            {
+                "use": "official",
+                "family": nome[1],
+                "given": [nome[0]]
+            }
+        ],
         "identifier": [{"system": "http://www.saude.gov.br/fhir/r4/StructureDefinition/BRDocumentoIndividuo-1.0", "value": cpf}],
         "gender": genero.lower(),
         "birthDate": data_nascimento,
@@ -89,3 +96,17 @@ def criar_observacao_a_partir_da_linha(paciente_id, observacao):
     }
 
     return observation
+
+def dividir_nome_sobrenome(nome_completo):
+    palavras = nome_completo.split()
+
+    palavras = [p for p in palavras if p.lower() not in ['de', 'do', 'da']]
+
+    if len(palavras) == 1:
+        return [palavras[0], '']
+    elif len(palavras) == 2:
+        return [palavras[0], palavras[1]]
+    else:
+        sobrenome = palavras[-1]
+        nome = ' '.join(palavras[:-1])
+        return [nome, sobrenome]
